@@ -13,7 +13,7 @@ from discord.ext.commands import BadArgument
 
 from core._color_data import ALL_COLORS
 from core.models import DMDisabled, InvalidConfigError, Default, getLogger
-from core.time import UserFriendlyTimeSync
+from core.time import UserFriendlyTime
 from core.utils import strtobool
 
 logger = getLogger(__name__)
@@ -53,6 +53,7 @@ class ConfigManager:
         "use_user_id_channel_name": False,
         "use_timestamp_channel_name": False,
         "use_nickname_channel_name": False,
+        "use_random_channel_name": False,
         "recipient_thread_close": False,
         "thread_show_roles": True,
         "thread_show_account_age": True,
@@ -165,6 +166,7 @@ class ConfigManager:
         "database_type": "mongodb",
         "connection_uri": None,  # replace mongo uri in the future
         "owners": None,
+        "enable_presence_intent": False,
         # bot
         "token": None,
         "enable_plugins": True,
@@ -187,6 +189,7 @@ class ConfigManager:
         "use_user_id_channel_name",
         "use_timestamp_channel_name",
         "use_nickname_channel_name",
+        "use_random_channel_name",
         "user_typing",
         "mod_typing",
         "reply_without_command",
@@ -219,6 +222,7 @@ class ConfigManager:
         "thread_show_account_age",
         "thread_show_join_age",
         "use_hoisted_top_role",
+        "enable_presence_intent",
     }
 
     enums = {
@@ -364,7 +368,7 @@ class ConfigManager:
 
         return value
 
-    def set(self, key: str, item: typing.Any, convert=True) -> None:
+    async def set(self, key: str, item: typing.Any, convert=True) -> None:
         if not convert:
             return self.__setitem__(key, item)
 
@@ -398,8 +402,8 @@ class ConfigManager:
                 isodate.parse_duration(item)
             except isodate.ISO8601Error:
                 try:
-                    converter = UserFriendlyTimeSync()
-                    time = converter.convert(None, item)
+                    converter = UserFriendlyTime()
+                    time = await converter.convert(None, item, now=discord.utils.utcnow())
                     if time.arg:
                         raise ValueError
                 except BadArgument as exc:
@@ -410,7 +414,8 @@ class ConfigManager:
                         "Unrecognized time, please use ISO-8601 duration format "
                         'string or a simpler "human readable" time.'
                     )
-                item = isodate.duration_isoformat(time.dt - converter.now)
+                now = discord.utils.utcnow()
+                item = isodate.duration_isoformat(time.dt - now)
             return self.__setitem__(key, item)
 
         if key in self.booleans:

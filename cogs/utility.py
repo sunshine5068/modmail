@@ -39,7 +39,7 @@ logger = getLogger(__name__)
 
 class ModmailHelpCommand(commands.HelpCommand):
     async def command_callback(self, ctx, *, command=None):
-        """Ovrwrites original command_callback to ensure `help` without any arguments
+        """Overwrites original command_callback to ensure `help` without any arguments
         returns with checks, `help all` returns without checks"""
         if command is None:
             self.verify_checks = True
@@ -89,15 +89,19 @@ class ModmailHelpCommand(commands.HelpCommand):
 
             embed.add_field(name="Commands", value=format_ or "No commands.")
 
-            continued = " (Continued)" if embeds else ""
             name = cog.qualified_name + " - Help" if not no_cog else "Miscellaneous Commands"
-            embed.set_author(name=name + continued, icon_url=bot.user.display_avatar.url)
+            embed.set_author(name=name, icon_url=bot.user.display_avatar.url)
 
             embed.set_footer(
                 text=f'Type "{prefix}{self.command_attrs["name"]} command" '
                 "for more info on a specific command."
             )
             embeds.append(embed)
+
+        if len(embeds) > 1:
+            for n, em in enumerate(embeds):
+                em.set_author(name=f"{em.author.name} [{n + 1}]", icon_url=em.author.icon_url)
+
         return embeds
 
     def process_help_msg(self, help_: str):
@@ -193,7 +197,7 @@ class ModmailHelpCommand(commands.HelpCommand):
 
             if snippet_aliases:
                 embed.add_field(
-                    name=f"Aliases to this snippet:", value=",".join(snippet_aliases), inline=False
+                    name="Aliases to this snippet:", value=",".join(snippet_aliases), inline=False
                 )
 
             return await self.get_destination().send(embed=embed)
@@ -806,7 +810,7 @@ class Utility(commands.Cog):
 
         if key in keys:
             try:
-                self.bot.config.set(key, value)
+                await self.bot.config.set(key, value)
                 await self.bot.config.update()
                 embed = discord.Embed(
                     title="Success",
@@ -1016,7 +1020,7 @@ class Utility(commands.Cog):
                 color=self.bot.error_color, description="You dont have any aliases at the moment."
             )
             embed.set_footer(text=f'Do "{self.bot.prefix}help alias" for more commands.')
-            embed.set_author(name="Aliases", icon_url=ctx.guild.icon.url)
+            embed.set_author(name="Aliases", icon_url=self.bot.get_guild_icon(guild=ctx.guild))
             return await ctx.send(embed=embed)
 
         embeds = []
@@ -1024,7 +1028,7 @@ class Utility(commands.Cog):
         for i, names in enumerate(zip_longest(*(iter(sorted(self.bot.aliases)),) * 15)):
             description = utils.format_description(i, names)
             embed = discord.Embed(color=self.bot.main_color, description=description)
-            embed.set_author(name="Command Aliases", icon_url=ctx.guild.icon.url)
+            embed.set_author(name="Command Aliases", icon_url=self.bot.get_guild_icon(guild=ctx.guild))
             embeds.append(embed)
 
         session = EmbedPaginatorSession(ctx, *embeds)
@@ -1111,7 +1115,7 @@ class Utility(commands.Cog):
         await self.bot.config.update()
         return embed
 
-    @alias.command(name="add")
+    @alias.command(name="add", aliases=["create", "make"])
     @checks.has_permissions(PermissionLevel.MODERATOR)
     async def alias_add(self, ctx, name: str.lower, *, value):
         """
@@ -1607,7 +1611,9 @@ class Utility(commands.Cog):
                                 for name, level in takewhile(lambda x: x is not None, items)
                             )
                             embed = discord.Embed(color=self.bot.main_color, description=description)
-                            embed.set_author(name="Permission Overrides", icon_url=ctx.guild.icon.url)
+                            embed.set_author(
+                                name="Permission Overrides", icon_url=self.bot.get_guild_icon(guild=ctx.guild)
+                            )
                             embeds.append(embed)
 
                     session = EmbedPaginatorSession(ctx, *embeds)
@@ -1927,7 +1933,7 @@ class Utility(commands.Cog):
     async def update(self, ctx, *, flag: str = ""):
         """
         Update Modmail.
-        To stay up-to-date with the latest commit rom GitHub, specify "force" as the flag.
+        To stay up-to-date with the latest commit from GitHub, specify "force" as the flag.
         """
 
         changelog = await Changelog.from_url(self.bot)
@@ -1935,7 +1941,7 @@ class Utility(commands.Cog):
 
         desc = (
             f"The latest version is [`{self.bot.version}`]"
-            "(https://github.com/kyb3r/modmail/blob/master/bot.py#L25)"
+            "(https://github.com/kyb3r/modmail/blob/master/bot.py#L1)"
         )
 
         if self.bot.version >= parse_version(latest.version) and flag.lower() != "force":
@@ -1947,16 +1953,39 @@ class Utility(commands.Cog):
                 embed.set_author(name=user["username"], icon_url=user["avatar_url"], url=user["url"])
             await ctx.send(embed=embed)
         else:
-            if self.bot.hosting_method == HostingMethod.HEROKU:
+            error = None
+            data = {}
+            try:
+                # update fork if gh_token exists
                 data = await self.bot.api.update_repository()
+            except InvalidConfigError:
+                pass
+            except ClientResponseError as exc:
+                error = exc
+
+            if self.bot.hosting_method == HostingMethod.HEROKU:
+                if error is not None:
+                    embed = discord.Embed(
+                        title="Update failed",
+                        description=f"Error status: {error.status}.\nError message: {error.message}",
+                        color=self.bot.error_color,
+                    )
+                    return await ctx.send(embed=embed)
+                if not data:
+                    # invalid gh_token
+                    embed = discord.Embed(
+                        title="Update failed",
+                        description="Invalid Github token.",
+                        color=self.bot.error_color,
+                    )
+                    return await ctx.send(embed=embed)
 
                 commit_data = data["data"]
                 user = data["user"]
-
                 if commit_data and commit_data.get("html_url"):
                     embed = discord.Embed(color=self.bot.main_color)
 
-                    embed.set_footer(text=f"Updating Modmail v{self.bot.version} " f"-> v{latest.version}")
+                    embed.set_footer(text=f"Updating Modmail v{self.bot.version} -> v{latest.version}")
 
                     embed.set_author(
                         name=user["username"] + " - Updating bot",
@@ -1974,21 +2003,14 @@ class Utility(commands.Cog):
                 else:
                     embed = discord.Embed(
                         title="Already up to date",
-                        description="No further updates required",
+                        description="No further updates required.",
                         color=self.bot.main_color,
                     )
                     embed.set_footer(text="Force update")
                     embed.set_author(name=user["username"], icon_url=user["avatar_url"], url=user["url"])
                 await ctx.send(embed=embed)
             else:
-                # update fork if gh_token exists
-                try:
-                    await self.bot.api.update_repository()
-                except InvalidConfigError:
-                    pass
-
                 command = "git pull"
-
                 proc = await asyncio.create_subprocess_shell(
                     command,
                     stderr=PIPE,

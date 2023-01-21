@@ -6,14 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html);
 however, insignificant breaking changes do not guarantee a major version bump, see the reasoning [here](https://github.com/kyb3r/modmail/issues/319). If you're a plugin developer, note the "BREAKING" section.
 
+# [UNRELEASED]
+
+### Fixed
+- `?alias make/create` as aliases to `?alias add`. This improves continuity between the bot and its command structure. ([PR #3195](https://github.com/kyb3r/modmail/pull/3195))
+- Loading the blocked list with the `?blocked` command takes a long time when the list is large. ([PR #3242](https://github.com/kyb3r/modmail/pull/3242))
+
+# v4.0.2
+
+### Breaking
+
+- Presence intent is now by-default OFF. You can turn it on by setting `ENABLE_PRESENCE_INTENT=true` in the environment variables.
+
+### Fixed
+
+- Not having a guild icon no longer raises an exception. ([PR #3235](https://github.com/kyb3r/modmail/pull/3235))
+  - When no icon is set, use the default user icon.
+- Resolved an issue where `?logs` doesn't work when the thread has no title. ([PR #3201](https://github.com/kyb3r/modmail/pull/3201))
+- AttributeError raised when failing to forward a reaction. ([GH #3218](https://github.com/kyb3r/modmail/issues/3218))
+
+### Changed
+
+- Plain messages no longer forces `()` around the respondent text. ([PR #3234](https://github.com/kyb3r/modmail/pull/3234))
+- Added workflow to automatically build Docker image ([PR #3232](https://github.com/kyb3r/modmail/pull/3228))
+- Updated installation guide to reflect new preferred hosting methods
+
+# v4.0.1
+
+This is a hotfix release.
+
+### Improved
+
+- Error Messages
+
+### Fixed
+
+- Thread cooldown
+
 # v4.0.0
 
 ### Breaking
 
 - Modmail now requires [`Message Content` privileged intent](https://support-dev.discord.com/hc/en-us/articles/4404772028055-Message-Content-Privileged-Intent-for-Verified-Bots).
-- Upgraded to discord.py v2.0 master ([internal changes](https://gist.github.com/apple502j/f75b4f24652f04de85c7084ffd73ec58), [GH #2990](https://github.com/kyb3r/modmail/issues/2990)).
+- Upgraded to discord.py v2.0 ([internal changes](https://discordpy.readthedocs.io/en/latest/migrating.html), [GH #2990](https://github.com/kyb3r/modmail/issues/2990)).
 - Python 3.8 or higher is required.
 - Asyncio changes ([gist](https://gist.github.com/Rapptz/6706e1c8f23ac27c98cee4dd985c8120))
+- Plugin registry is purged and all developers have to re-apply due to breaking changes.
 
 ### Added
 
@@ -22,16 +60,20 @@ however, insignificant breaking changes do not guarantee a major version bump, s
 - `plain_snippets` config to force all snippets to be plain. ([GH #3083](https://github.com/kyb3r/modmail/issues/3083))
 - `?fpareply` and `?fpreply` to reply to messages with variables plainly.
 - `use_nickname_channel_name` config to use nicknames instead of usernames for channel names. ([GH #3112](https://github.com/kyb3r/modmail/issues/3112))
+- `use_random_channel_name` config to use random nicknames vaguely tied to user ID. It is unable to be computed in reverse. ([GH #3143](https://github.com/kyb3r/modmail/issues/3143))
 - `show_log_url_button` config to show Log URL button. ([GH #3122](https://github.com/kyb3r/modmail/issues/3122))
 - Select menus for certain paginators.
 - `Title` field in `?logs`. ([GH #3142](https://github.com/kyb3r/modmail/issues/3142))
 - Snippets can be used in aliases. ([GH #3108](https://github.com/kyb3r/modmail/issues/3108), [PR #3124](https://github.com/kyb3r/modmail/pull/3124))
+- `?snippet make/create` as aliases to `?snippet add`. ([GH #3172](https://github.com/kyb3r/modmail/issues/3173), [PR #3174](https://github.com/kyb3r/modmail/pull/3174))
 
 ### Improved
 
 - Modmail now uses per-server avatars if applicable. ([GH #3048](https://github.com/kyb3r/modmail/issues/3048))
 - Use discord relative timedeltas. ([GH #3046](https://github.com/kyb3r/modmail/issues/3046))
 - Use discord native buttons for all paginator sessions.
+- `?help` and `?blocked` paginator sessions now have better multi-page UI.
+- Autoupdate now automatically updates pipenv dependencies if possible.
 
 ### Fixed
 
@@ -48,6 +90,10 @@ however, insignificant breaking changes do not guarantee a major version bump, s
 - Audit log searching now properly works.
 - Old data causing `?blocked` to fail. ([GH #3131](https://github.com/kyb3r/modmail/issues/3131))
 - Delete channel auto close functionality now works.
+- Improved error handling for autoupdate. ([PR #3161](https://github.com/kyb3r/modmail/pull/3161))
+- Skip loading of already-loaded cog. ([PR #3172](https://github.com/kyb3r/modmail/pull/3172))
+- Respect plugin's `cog_command_error`. ([GH #3170](https://github.com/kyb3r/modmail/issues/3170), [PR #3178](https://github.com/kyb3r/modmail/pull/3178))
+- Use silent as a typing literal for contacting. ([GH #3179](https://github.com/kyb3r/modmail/issues/3179))
 
 ### Internal
 
@@ -59,8 +105,15 @@ however, insignificant breaking changes do not guarantee a major version bump, s
 - Bump emoji to v1.7.0
 - Bump aiohttp to v3.8.1
 - Bump lottie to v0.6.11
+- Remove deprecated `core/decorators.py` from v3.3.0
 
-# v3.10.3
+# v3.10.5
+
+### Internal
+
+- Locked plugin registry version impending v4 release.
+
+# v3.10.4
 
 ### Improved
 
@@ -73,6 +126,13 @@ however, insignificant breaking changes do not guarantee a major version bump, s
 ### Internal
 
 - Set `LOG_DISCORD` environment variable to the logger level and log discord events.
+
+# v3.10.3
+This is a hotfix for contact command.
+
+### Fixed
+
+- Fixed a bug where contacting with no category argument defaults to the top category.
 
 # v3.10.2
 This is a hotfix for react to contact.
